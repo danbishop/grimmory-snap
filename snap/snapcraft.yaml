@@ -103,8 +103,8 @@ parts:
       corepack prepare yarn@stable --activate
       
       # Build the UI
-      just -d /root/parts/grimmory-ui/src/frontend --justfile /root/parts/grimmory-ui/src/frontend/Justfile install
-      just -d /root/parts/grimmory-ui/src/frontend --justfile /root/parts/grimmory-ui/src/frontend/Justfile build
+      just -d "${CRAFT_PART_SRC}"/frontend --justfile "${CRAFT_PART_SRC}"/frontend/Justfile install
+      just -d "${CRAFT_PART_SRC}"/frontend --justfile "${CRAFT_PART_SRC}"/frontend/Justfile build
       echo "Finished building Grimmory UI"
     override-stage: |
       printenv

@@ -71,12 +71,6 @@ description: |
 grade: stable
 confinement: strict
 
-layout:
-  /var/lib/nginx:
-    bind: $SNAP_DATA/var/lib/nginx
-  /var/log/nginx:
-    bind: $SNAP_DATA/var/log/nginx
-
 parts:
   # Grimmory UI
   grimmory-ui:
@@ -168,17 +162,6 @@ parts:
     organize:
       mariadb-start-server: bin/mariadb-start-server
       grimmory-start-server: bin/grimmory-start-server
-      nginx-start-server: bin/nginx-start-server
-  
-  nginx:
-    plugin: dump
-    source: ./nginx
-    stage-packages:
-      - nginx
-      - nginx-common
-      - gettext
-    organize:
-      nginx.conf.template: etc/nginx/nginx.conf.template
 
 apps:
   # MariaDB daemon
@@ -197,7 +180,6 @@ apps:
     plugs:
       - network
       - network-bind
-      # - system-observe
       - removable-media
       - mount-observe
     environment:
@@ -207,16 +189,6 @@ apps:
       LD_LIBRARY_PATH: $LD_LIBRARY_PATH:$SNAP/usr/lib
       JAVA_OPTS: -Djna.library.path=$SNAP/usr/lib/x86_64-linux-gnu/jni/libjnidispatch.system.so -Djna.tmpdir=/tmp
     
-  # Nginx daemon
-  nginx:
-    command: bin/nginx-start-server
-    daemon: simple
-    after:
-      - mariadb-server
-      - backend
-    restart-condition: always
-    plugs: [network, network-bind]
-
 lint:
   ignore:
     - library

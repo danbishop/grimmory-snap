@@ -92,6 +92,9 @@ parts:
     override-build: |
       echo "Building Grimmory UI..."
 
+      # Set registry so that launchpad builds work
+      npm config set registry http://registry.npmjs.org
+
       # Install and enable corepack
       npm install -g corepack
       corepack enable

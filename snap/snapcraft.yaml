@@ -1,0 +1,222 @@
+name: grimmory
+title: Grimmory
+license: GPL-3.0
+website: https://grimmory.org/
+donation: https://opencollective.com/grimmory
+source-code: https://github.com/grimmory-tools/grimmory
+issues: https://github.com/danbishop/grimmory-snap/issues
+contact: d@nbishop.uk
+base: core24
+platforms:
+  amd64:
+    build-on: [amd64]
+    build-for: [amd64]
+  arm64:
+    build-on: [arm64]
+    build-for: [arm64]
+  # riscv64:
+  #   build-on: [riscv64]
+  #   build-for: [riscv64]
+adopt-info: backend
+summary: A self-hosted web app for organising your personal book collection
+description: |
+  Grimmory is a self-hosted app that brings your entire book collection under one roof.
+  Organise, read, annotate, sync, and share.
+  
+  **This is an unofficial snap.** After installing, and waiting for the the various
+  services to start, your instance will be accessible at http://localhost:41935
+
+  You'll probably want to connect the snap as follows to allow access your books
+  which should be in _/mnt/somewhere_ or _/media/somewhere_ so that the snap can access them:
+
+  `sudo snap connect grimmory:removable-media`
+
+  `sudo snap connect grimmory:mount-observe`
+
+  There are three services, nginx (the web server), grimmory-api (the backend API server),
+  and mariadb (the database server). The database files and logs are stored in the snap's
+  data directory, which is preserved across snap updates.
+
+  **Ports**
+
+  You can change the port that each service uses with the following commands:
+
+  For the port that nginx listens on (default 41935):
+  
+  `sudo snap set grimmory port=<desired-port>`
+  
+  For the port that MariaDB listens on (default 41936):
+  
+  `sudo snap set grimmory database-port=<desired-port>`
+  
+  For the port that grimmory-api listens on (default 41937):
+  
+  `sudo snap set grimmory api-port=<desired-port>`
+  
+  After changing the ports, you will need to restart the snap for the changes to take effect:
+  
+  `sudo snap restart grimmory`
+
+  **Database**
+
+  If you need to connect to the MariaDB database from outside the snap, the username is _grimmory_
+  and you can use the following command to get the password:
+  
+  `snap get grimmory database-password`
+
+  You can also connect with the following command as root:
+  
+  `sudo mariadb --socket=/var/snap/grimmory/common/run/mysql/mysqld.sock -u root --skip-ssl`
+
+grade: stable
+confinement: strict
+
+layout:
+  /var/lib/nginx:
+    bind: $SNAP_DATA/var/lib/nginx
+  /var/log/nginx:
+    bind: $SNAP_DATA/var/log/nginx
+
+parts:
+  # Grimmory UI
+  grimmory-ui:
+    plugin: npm
+    npm-include-node: false
+    build-snaps:
+      # use Node.js Snap during the build-time only
+      - node/24/stable
+    # The remote repository URL
+    source: https://github.com/grimmory-tools/grimmory.git
+    source-type: git
+    # The specific subdirectory within the repo
+    source-subdir: frontend
+    build-packages:
+      - just
+    override-pull: |
+      craftctl default
+
+      # Find the latest tag on the current branch
+      LATEST_TAG=$(git describe --tags --abbrev=0)
+      
+      # Switch the source code to that tag
+      git checkout $LATEST_TAG
+    override-build: |
+      echo "Building Grimmory UI..."
+
+      # Install and enable corepack
+      npm install -g corepack
+      corepack enable
+      corepack prepare yarn@stable --activate
+      
+      # Build the UI
+      just -d /root/parts/grimmory-ui/src/frontend --justfile /root/parts/grimmory-ui/src/frontend/Justfile install
+      just -d /root/parts/grimmory-ui/src/frontend --justfile /root/parts/grimmory-ui/src/frontend/Justfile build
+      echo "Finished building Grimmory UI"
+    override-stage: |
+      printenv
+      mkdir -p "${CRAFT_PRIME}"/grimmory-ui
+      cp -a ${CRAFT_PART_SRC}/frontend/dist/grimmory/browser/ "${CRAFT_PRIME}"/grimmory-ui
+      craftctl default
+
+  backend:
+    plugin: nil
+    after:
+      - grimmory-ui
+    source: https://github.com/grimmory-tools/grimmory
+    source-type: git
+    build-packages:
+      - openjdk-25-jdk-headless
+      - ca-certificates
+      - ca-certificates-java
+      - yq
+    stage-packages:
+      - openjdk-25-jre-headless
+      - ca-certificates
+      - ca-certificates-java
+    override-build: |
+      # Find the latest tag on the current branch
+      LATEST_TAG=$(git describe --tags --abbrev=0)
+      # Switch the source code to that tag
+      git checkout $LATEST_TAG
+      # Set the snap version to match this tag
+      craftctl set version=$LATEST_TAG
+      yq -i -y '.app.version = env.LATEST_TAG' ${CRAFT_PART_BUILD}/backend/src/main/resources/application.yaml
+      echo "Building Grimmory backend"
+      export JAVA_HOME="${SNAPCRAFT_PART_INSTALL}/usr/lib/jvm/java-25-openjdk-${SNAP_ARCH}"
+      cd backend
+      if [ ! -z ${https_proxy+x} ]; then
+        https_proxy_host=$(echo $https_proxy | cut -d'/' -f3 | cut -d':' -f1);
+        https_proxy_port=$(echo $https_proxy | cut -d'/' -f3 | cut -d':' -f2);
+        gradle_opts="-Dhttp.proxyHost=$https_proxy_host -Dhttp.proxyPort=$https_proxy_port -Dhttps.proxyHost=$https_proxy_host -Dhttps.proxyPort=$https_proxy_port";
+      else
+        gradle_opts="";
+      fi
+      ./gradlew --no-daemon -PfrontendDistDir="${CRAFT_PRIME}"/grimmory-ui/browser $gradle_opts bootJar
+      echo "Finished building Grimmory backend"
+    override-stage: |
+      printenv
+      mkdir -p "${CRAFT_PRIME}"/bin
+      cp -a ${CRAFT_PART_BUILD}/backend/build/libs/backend-0.0.1-SNAPSHOT.jar ${SNAPCRAFT_PRIME}/bin/
+      craftctl default
+  
+  # Server wrapper scripts
+  server-wrappers:
+    plugin: dump
+    source: ./snap-wrappers
+    stage-packages:
+      - mariadb-server
+    organize:
+      mariadb-start-server: bin/mariadb-start-server
+      grimmory-start-server: bin/grimmory-start-server
+      nginx-start-server: bin/nginx-start-server
+  
+  nginx:
+    plugin: dump
+    source: ./nginx
+    stage-packages:
+      - nginx
+      - nginx-common
+      - gettext
+    organize:
+      nginx.conf.template: etc/nginx/nginx.conf.template
+
+apps:
+  # MariaDB daemon
+  mariadb-server:
+    command: bin/mariadb-start-server
+    daemon: simple
+    restart-condition: always
+    plugs: [network, network-bind]
+
+  backend:
+    command: bin/grimmory-start-server
+    daemon: simple
+    after:
+      - mariadb-server
+    restart-condition: always
+    plugs:
+      - network
+      - network-bind
+      # - system-observe
+      - removable-media
+      - mount-observe
+    environment:
+      LC_ALL: C.UTF-8
+      LANG: C.UTF-8
+      JAVA_HOME: $SNAP/usr/lib/jvm/java-25-openjdk-amd64/
+      LD_LIBRARY_PATH: $LD_LIBRARY_PATH:$SNAP/usr/lib
+      JAVA_OPTS: -Djna.library.path=$SNAP/usr/lib/x86_64-linux-gnu/jni/libjnidispatch.system.so -Djna.tmpdir=/tmp
+    
+  # Nginx daemon
+  nginx:
+    command: bin/nginx-start-server
+    daemon: simple
+    after:
+      - mariadb-server
+      - backend
+    restart-condition: always
+    plugs: [network, network-bind]
+
+lint:
+  ignore:
+    - library

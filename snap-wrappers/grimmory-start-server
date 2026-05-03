@@ -1,0 +1,8 @@
+#!/bin/bash
+export DATABASE_PORT="$(snapctl get database-port)"
+export DATABASE_URL="jdbc:mariadb://localhost:${DATABASE_PORT}/grimmory?createDatabaseIfNotExist=true"
+export DATABASE_USERNAME="grimmory"
+export DATABASE_PASSWORD="$(snapctl get database-password)"
+export API_PORT="$(snapctl get api-port)"
+mariadb --wait --socket=/var/snap/grimmory/common/run/mysql/mysqld.sock --skip-ssl -u root -e "CREATE OR REPLACE USER 'grimmory'@'localhost' IDENTIFIED BY '$DATABASE_PASSWORD';GRANT ALL PRIVILEGES ON *.* TO 'grimmory'@'localhost';FLUSH PRIVILEGES;"
+${SNAP}/usr/lib/jvm/java-25-openjdk-amd64/bin/java --enable-native-access=ALL-UNNAMED --enable-preview -jar -Dserver.port=$API_PORT -Dapp.path-config="${SNAP_COMMON}/app" -Dapp.bookdrop-folder="${SNAP_COMMON}/bookdrop" ${SNAP}/bin/backend-0.0.1-SNAPSHOT.jar

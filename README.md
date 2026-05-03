@@ -19,6 +19,8 @@ There are two services, backend (the Grimmory server),
 and mariadb (the database server). The database files and logs are stored in the snap's
 data directory, which is preserved across snap updates.
 
+**Ports**
+
 You can change the port that each service uses with the following commands:
 
 For the port that MariaDB listens on (default 41936):
@@ -38,6 +40,8 @@ After changing the ports, you will need to restart the snap for the changes to t
 ```bash
 sudo snap restart grimmory
 ```
+
+**Database**
 
 If you need to connect to the MariaDB database from outside the snap, the username is `grimmory`
 and you can use the following command to get the password:

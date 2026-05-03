@@ -93,7 +93,9 @@ parts:
       echo "Building Grimmory UI..."
 
       # Set registry so that launchpad builds work
-      npm config set registry http://registry.npmjs.org
+      npm config set registry https://registry.npmjs.org
+      yarn config set registry https://registry.npmjs.org/
+
 
       # Install and enable corepack
       npm install -g corepack

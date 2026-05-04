@@ -30,6 +30,7 @@ description: |
   which should be in `/mnt/somewhere` or `/media/somewhere` so that the snap can see them:
 
   `sudo snap connect grimmory:removable-media`
+
   `sudo snap connect grimmory:mount-observe`
 
   There are two services, backend (the Grimmory server),
@@ -164,6 +165,34 @@ parts:
       mariadb-start-server: bin/mariadb-start-server
       grimmory-start-server: bin/grimmory-start-server
 
+  kepub-tools:
+    plugin: dump
+    source: .
+    override-pull: |
+      set -e  # Exit immediately if a command fails
+
+      # 1. Determine the target architecture safely
+      # Uses CRAFT_ARCH if available, otherwise falls back to SNAPCRAFT_ARCH_ON_SET
+      TARGET_ARCH="${CRAFT_ARCH:-${SNAPCRAFT_ARCH_ON_SET:-amd64}}"
+      echo "Targeting architecture: $TARGET_ARCH"
+
+      # 2. Map the architecture to the repository's naming convention
+      case "$TARGET_ARCH" in
+        amd64)  ARCH_SUFFIX="linux-64bit" ;;
+        arm64)  ARCH_SUFFIX="linux-arm64" ;;
+        armhf)  ARCH_SUFFIX="linux-arm" ;;
+        *)      echo "Unsupported architecture: $TARGET_ARCH"; exit 1 ;;
+      esac
+     
+      # 3. Download the binary and make it executable
+      curl -L -o kepubify "https://github.com/pgaskin/kepubify/releases/download/v4.0.4/kepubify-${ARCH_SUFFIX}"
+      chmod +x kepubify
+
+      # 4. Run the default pull logic to finalise the stage
+      craftctl default
+    organize:
+      kepubify: bin/kepubify
+
 apps:
   # MariaDB daemon
   mariadb-server:
@@ -189,6 +218,9 @@ apps:
       JAVA_HOME: $SNAP/usr/lib/jvm/java-25-openjdk-amd64/
       LD_LIBRARY_PATH: $LD_LIBRARY_PATH:$SNAP/usr/lib
       JAVA_OPTS: -Djna.library.path=$SNAP/usr/lib/x86_64-linux-gnu/jni/libjnidispatch.system.so -Djna.tmpdir=/tmp
+  kepubify:
+    command: bin/kepubify
+    plugs: [home, removable-media]
     
 lint:
   ignore:

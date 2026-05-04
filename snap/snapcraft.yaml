@@ -92,15 +92,11 @@ parts:
     override-build: |
       echo "Building Grimmory UI..."
 
-      # Set registry so that launchpad builds work
-      npm config set registry https://registry.npmjs.org
-      yarn config set registry https://registry.npmjs.org/
-      if [ ! -z ${https_proxy+x} ]; then
-        https_proxy_host=$(echo $https_proxy | cut -d'/' -f3 | cut -d':' -f1);
-        https_proxy_port=$(echo $https_proxy | cut -d'/' -f3 | cut -d':' -f2);
-        yarn config set https-proxy http://$https_proxy_host:$https_proxy_port;
+      # Set proxies so that launchpad builds work
+      if [ -n "${http_proxy:-}" ]; then
+        export YARN_HTTP_PROXY="${http_proxy:-}"
+        export YARN_HTTPS_PROXY="${http_proxy:-}"
       fi
-
 
       # Install and enable corepack
       npm install -g corepack

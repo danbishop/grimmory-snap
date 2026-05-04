@@ -168,6 +168,8 @@ parts:
   kepub-tools:
     plugin: dump
     source: .
+    build-packages:
+      - curl
     override-pull: |
       set -e  # Exit immediately if a command fails
 

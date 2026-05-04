@@ -95,6 +95,11 @@ parts:
       # Set registry so that launchpad builds work
       npm config set registry https://registry.npmjs.org
       yarn config set registry https://registry.npmjs.org/
+      if [ ! -z ${https_proxy+x} ]; then
+        https_proxy_host=$(echo $https_proxy | cut -d'/' -f3 | cut -d':' -f1);
+        https_proxy_port=$(echo $https_proxy | cut -d'/' -f3 | cut -d':' -f2);
+        yarn config set https-proxy http://$https_proxy_host:$https_proxy_port;
+      fi
 
 
       # Install and enable corepack

@@ -97,6 +97,7 @@ parts:
       if [ -n "${http_proxy:-}" ]; then
         export YARN_HTTP_PROXY="${http_proxy:-}"
         export YARN_HTTPS_PROXY="${http_proxy:-}"
+        export COREPACK_NPM_REGISTRY="${http_proxy:-}"
       fi
 
       # Install and enable corepack
@@ -124,7 +125,6 @@ parts:
       - openjdk-25-jdk-headless
       - ca-certificates
       - ca-certificates-java
-      - yq
     stage-packages:
       - openjdk-25-jre-headless
       - ca-certificates
@@ -136,7 +136,8 @@ parts:
       git checkout $LATEST_TAG
       # Set the snap version to match this tag
       craftctl set version=$LATEST_TAG
-      yq -i -y '.app.version = env.LATEST_TAG' ${CRAFT_PART_BUILD}/backend/src/main/resources/application.yaml
+      APP_VERSION=3.2.0
+      APP_REVISION=3.2.1
       echo "Building Grimmory backend"
       export JAVA_HOME="${SNAPCRAFT_PART_INSTALL}/usr/lib/jvm/java-25-openjdk-${SNAP_ARCH}"
       cd backend
@@ -220,6 +221,8 @@ apps:
       JAVA_HOME: $SNAP/usr/lib/jvm/java-25-openjdk-amd64/
       LD_LIBRARY_PATH: $LD_LIBRARY_PATH:$SNAP/usr/lib
       JAVA_OPTS: -Djna.library.path=$SNAP/usr/lib/x86_64-linux-gnu/jni/libjnidispatch.system.so -Djna.tmpdir=/tmp
+      APP_VERSION: 3.3.0
+      APP_REVISION: 3.3.1
   kepubify:
     command: bin/kepubify
     plugs: [home, removable-media]

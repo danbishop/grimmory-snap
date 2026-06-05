@@ -97,7 +97,7 @@ parts:
       if [ -n "${http_proxy:-}" ]; then
         export YARN_HTTP_PROXY="${http_proxy:-}"
         export YARN_HTTPS_PROXY="${http_proxy:-}"
-        export COREPACK_NPM_REGISTRY="${http_proxy:-}"
+        export COREPACK_NPM_REGISTRY="http://registry.npmjs.org"
       fi
 
       # Install and enable corepack

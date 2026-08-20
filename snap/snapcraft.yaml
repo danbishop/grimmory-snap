@@ -74,7 +74,7 @@ parts:
     npm-include-node: false
     build-snaps:
       # use Node.js Snap during the build-time only
-      - node/24/stable
+      - node/26/stable
     # The remote repository URL
     source: https://github.com/grimmory-tools/grimmory.git
     source-type: git
@@ -98,14 +98,16 @@ parts:
         export YARN_HTTP_PROXY="${http_proxy:-}"
         export HTTP_PROXY="${http_proxy:-}"
         export HTTPS_PROXY="${http_proxy:-}"
-        # export YARN_HTTPS_PROXY="${http_proxy:-}"
-        # export COREPACK_NPM_REGISTRY="http://registry.npmjs.org"
       fi
 
-      # Install and enable corepack
-      npm install -g corepack
-      corepack enable
-      corepack prepare yarn@stable --activate
+      # Install and enable pnpm
+      export PNPM_HOME="/pnpm"
+      export PATH="${PNPM_HOME}:${PATH}"
+      npm install --ignore-scripts -g pnpm@11.18.0
+      cd ${CRAFT_PART_SRC}
+      pnpm fetch
+      pnpm install --offline --frozen-lockfile --ignore-scripts
+      CI=1 NG_CLI_ANALYTICS=false pnpm -C frontend run build:prod
       
       # Build the UI
       just -d "${CRAFT_PART_SRC}"/frontend --justfile "${CRAFT_PART_SRC}"/frontend/Justfile install

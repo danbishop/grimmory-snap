@@ -6,7 +6,7 @@ donation: https://opencollective.com/grimmory
 source-code: https://github.com/grimmory-tools/grimmory
 issues: https://github.com/danbishop/grimmory-snap/issues
 contact: d@nbishop.uk
-base: core24
+base: core26
 platforms:
   amd64:
     build-on: [amd64]
@@ -140,8 +140,6 @@ parts:
       git checkout $LATEST_TAG
       # Set the snap version to match this tag
       craftctl set version=$LATEST_TAG
-      APP_VERSION=3.2.0
-      APP_REVISION=3.2.1
       echo "Building Grimmory backend"
       export JAVA_HOME="${SNAPCRAFT_PART_INSTALL}/usr/lib/jvm/java-25-openjdk-${SNAP_ARCH}"
       cd backend
@@ -225,8 +223,6 @@ apps:
       JAVA_HOME: $SNAP/usr/lib/jvm/java-25-openjdk-amd64/
       LD_LIBRARY_PATH: $LD_LIBRARY_PATH:$SNAP/usr/lib
       JAVA_OPTS: -Djna.library.path=$SNAP/usr/lib/x86_64-linux-gnu/jni/libjnidispatch.system.so -Djna.tmpdir=/tmp
-      APP_VERSION: 3.3.0
-      APP_REVISION: 3.3.1
   kepubify:
     command: bin/kepubify
     plugs: [home, removable-media]
